@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manuelles Backup</title>
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        async function loadFolders() {
+            let response = await fetch('/list_folders');  // Holt die Verzeichnisstruktur
+            let data = await response.json();
+            let folderContainer = document.getElementById("folderContainer");
+            folderContainer.innerHTML = "";
+
+            if (data.status === "success") {
+                folderContainer.appendChild(createFolderTree(data.directories));
+            } else {
+                alert("Fehler beim Laden der Verzeichnisse: " + data.message);
+            }
+        }
+
+        function createFolderTree(folders) {
+            let ul = document.createElement("ul");
+            folders.forEach(folder => {
+                let li = document.createElement("li");
+                li.classList.add("mb-1");
+
+                let toggle = document.createElement("span");
+                toggle.innerText = "▶";
+                toggle.style.cursor = "pointer";
+                toggle.classList.add("mr-2", "text-blue-500", "font-bold");
+
+                let checkbox = document.createElement("input");
+                checkbox.type = "checkbox";
+                checkbox.value = folder.path;
+                checkbox.classList.add("folder-checkbox", "mr-2");
+
+                let label = document.createElement("label");
+                label.innerText = folder.name;
+                label.classList.add("text-gray-800");
+
+                li.appendChild(toggle);
+                li.appendChild(checkbox);
+                li.appendChild(label);
+
+                if (folder.children && folder.children.length > 0) {
+                    let childUl = createFolderTree(folder.children);
+                    childUl.style.display = "none";
+                    li.appendChild(childUl);
+
+                    toggle.onclick = function () {
+                        if (childUl.style.display === "none") {
+                            childUl.style.display = "block";
+                            toggle.innerText = "▼";
+                        } else {
+                            childUl.style.display = "none";
+                            toggle.innerText = "▶";
+                        }
+                    };
+                } else {
+                    toggle.style.visibility = "hidden";
+                }
+
+                ul.appendChild(li);
+            });
+            return ul;
+        }
+
+        async function createBackup() {
+            let backupName = document.getElementById("backupName").value.trim();
+            let selectedPaths = Array.from(document.querySelectorAll(".folder-checkbox:checked"))
+                                    .map(cb => cb.value);
+
+            if (!backupName) {
+                alert("Bitte einen Namen für das Backup eingeben!");
+                return;
+            }
+
+            if (selectedPaths.length === 0) {
+                alert("Bitte mindestens einen Ordner auswählen!");
+                return;
+            }
+
+            let response = await fetch('/create_backup', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({backup_name: backupName, source_paths: selectedPaths})
+            });
+
+            let result = await response.json();
+            alert(result.message);
+        }
+
+        window.onload = loadFolders;
+    </script>
+</head>
+<body class="bg-gray-100 text-gray-900">
+    <div class="max-w-3xl mx-auto p-6 bg-white shadow-lg rounded-lg mt-10">
+        <h1 class="text-2xl font-bold text-center mb-6">📂 Manuelles Backup</h1>
+
+        <label class="block font-medium text-lg">📛 Backup-Name:</label>
+        <input type="text" id="backupName" placeholder="MeinBackup"
+               class="w-full p-2 border rounded mb-4 focus:outline-none focus:ring-2 focus:ring-blue-400">
+
+        <h3 class="text-xl font-semibold mb-2">📋 Wähle die Verzeichnisse aus, die gesichert werden sollen:</h3>
+        <div id="folderContainer" class="p-4 border rounded bg-gray-50 max-h-72 overflow-y-auto">
+            Lade Verzeichnisse...
+        </div>
+
+        <button onclick="createBackup()"
+                class="w-full bg-blue-500 text-white p-3 rounded mt-4 hover:bg-blue-600 transition">
+            📦 Backup erstellen
+        </button>
+
+        <br><br>
+        <a href="/">
+            <button class="w-full bg-gray-700 text-white p-3 rounded hover:bg-gray-800">
+                🔙 Zurück zur Hauptseite
+            </button>
+        </a>
+    </div>
+</body>
+</html>

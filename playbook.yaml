@@ -1,0 +1,83 @@
+- name: Borg Weboberfläche installieren
+  hosts: borghost
+  become: yes
+  tasks:
+    - name: Update package cache
+      apt:
+        update_cache: yes
+
+    - name: Ensure python3 and pip are installed
+      apt:
+        name:
+          - python3
+          - python3-pip
+        state: present
+
+    - name: Ensure borgbackup is installed
+      apt:
+        name: borgbackup
+        state: present
+
+    - name: Ensure apache2 is installed
+      apt:
+        name: apache2
+        state: present
+
+    - name: Ensure ssh is installed
+      apt:
+        name: openssh-client
+        state: present
+
+    - name: Ensure sshpass is installed
+      apt:
+        name: sshpass
+        state: present
+
+    - name: Ensure cron is installed
+      apt:
+        name: cron
+        state: present
+
+    - name: Ensure Python packages are installed via apt
+      apt:
+        name:
+          - python3-flask
+          - python3-flask-session
+          - python3-jinja2
+        state: present
+
+    - name: daten auf ziel rechner schieben
+      copy:
+        src: Borg_WebGUI
+        dest: /opt
+        mode: '0755'
+
+    - name: Create systemd service file for Borg Backup Webinterface
+      copy:
+        dest: /etc/systemd/system/borgapp.service
+        content: |
+          [Unit]
+          Description=Borg Backup Webinterface
+          After=network.target
+
+          [Service]
+          ExecStart=/usr/bin/python3 /opt/Borg_WebGUI/app.py
+          WorkingDirectory=/opt/Borg_WebGUI
+          Restart=always
+          User=root
+          Environment=FLASK_ENV=production
+
+          [Install]
+          WantedBy=multi-user.target
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Reload systemd daemon
+      command: systemctl daemon-reload
+
+    - name: Start borgapp service
+      command: systemctl start borgapp.service
+
+    - name: Enable borgapp service at boot
+      command: systemctl enable borgapp.service

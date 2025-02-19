@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Borg Backup Webinterface</title>
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-900">
+
+    <div class="max-w-2xl mx-auto p-6 bg-white shadow-lg rounded-lg mt-10">
+        <h1 class="text-3xl font-bold text-center mb-6">📂 Borg Backup Webinterface</h1>
+
+        <div class="space-y-4">
+            <h3 class="text-xl font-semibold">🔹 Backup-Verwaltung:</h3>
+            <a href="/manage">
+                <button class="w-full bg-blue-500 text-white px-4 py-2 rounded shadow hover:bg-blue-600">
+                    📁 Backup erstellen
+                </button>
+            </a>
+
+            <a href="/backups">
+                <button class="w-full bg-green-500 text-white px-4 py-2 rounded shadow hover:bg-green-600">
+                    📋 Gespeicherte Backups anzeigen
+                </button>
+            </a>
+
+            <a href="/presets">
+                <button class="w-full bg-purple-500 text-white px-4 py-2 rounded shadow hover:bg-purple-600">
+                    💾 Backup-Presets verwalten
+                </button>
+            </a>
+
+            <a href="/autobackups">
+                <button class="w-full bg-yellow-500 text-white px-4 py-2 rounded shadow hover:bg-yellow-600">
+                    🔄 Auto-Backups verwalten
+                </button>
+            </a>
+        </div>
+
+        <div class="mt-6 space-y-4">
+            <h3 class="text-xl font-semibold">⚙ System-Einstellungen:</h3>
+            <a href="/settings">
+                <button class="w-full bg-gray-700 text-white px-4 py-2 rounded shadow hover:bg-gray-800">
+                    🔧 Storage-Box Einstellungen
+                </button>
+            </a>
+
+            <a href="/logout">
+                <button class="w-full bg-red-500 text-white px-4 py-2 rounded shadow hover:bg-red-600">
+                    🚪 Abmelden
+                </button>
+            </a>
+        </div>
+    </div>
+
+</body>
+</html>

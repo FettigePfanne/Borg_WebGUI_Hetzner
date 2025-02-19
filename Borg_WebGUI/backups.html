@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gespeicherte Backups</title>
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        async function listBackups() {
+            let response = await fetch('/list_backups');
+            let data = await response.json();
+            let backupList = document.getElementById("backupList");
+            backupList.innerHTML = "";
+
+            if (data.status === "success" && data.backups.length > 0) {
+                data.backups.forEach(backup => {
+                    let div = document.createElement("div");
+                    div.classList.add("flex", "items-center", "p-2", "border", "rounded", "mb-2", "shadow-sm", "bg-white");
+
+                    let checkbox = document.createElement("input");
+                    checkbox.type = "checkbox";
+                    checkbox.value = backup;
+                    checkbox.classList.add("backup-checkbox", "mr-3");
+
+                    let label = document.createElement("label");
+                    label.innerText = backup;
+                    label.classList.add("text-gray-800");
+
+                    div.appendChild(checkbox);
+                    div.appendChild(label);
+                    backupList.appendChild(div);
+                });
+            } else {
+                backupList.innerHTML = "<p class='text-gray-500'>❌ Keine Backups gefunden!</p>";
+            }
+        }
+
+        async function deleteSelectedBackups() {
+            let selectedBackups = Array.from(document.querySelectorAll(".backup-checkbox:checked"))
+                                       .map(cb => cb.value);
+
+            if (selectedBackups.length === 0) {
+                alert("Bitte mindestens ein Backup auswählen!");
+                return;
+            }
+
+            if (!confirm(`Möchtest du diese ${selectedBackups.length} Backups wirklich löschen?`)) return;
+
+            let response = await fetch('/delete_multiple_backups', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({archive_names: selectedBackups})
+            });
+
+            let result = await response.json();
+            alert(result.message);
+            listBackups();
+        }
+
+        async function restoreSelectedBackups() {
+            let selectedBackups = Array.from(document.querySelectorAll(".backup-checkbox:checked"))
+                                       .map(cb => cb.value);
+
+            if (selectedBackups.length === 0) {
+                alert("Bitte mindestens ein Backup auswählen!");
+                return;
+            }
+
+            let targetPath = prompt("Wiederherstellen nach (Pfad eingeben):", "/home/user/wiederherstellen");
+            if (!targetPath) {
+                alert("Wiederherstellung abgebrochen.");
+                return;
+            }
+
+            let response = await fetch('/restore_multiple_backups', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({archive_names: selectedBackups, target_path: targetPath})
+            });
+
+            let result = await response.json();
+            alert(result.message);
+        }
+
+        window.onload = listBackups;
+    </script>
+</head>
+<body class="bg-gray-100 text-gray-900">
+    <div class="max-w-3xl mx-auto p-6 bg-white shadow-lg rounded-lg mt-10">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">📂 Gespeicherte Backups</h1>
+
+        <h3 class="text-xl font-semibold mb-4">📋 Wähle die Backups aus, die du löschen oder wiederherstellen möchtest:</h3>
+        <div id="backupList" class="p-4 border rounded bg-gray-50 max-h-80 overflow-y-auto">
+            <p class="text-gray-500 text-center">🔄 Lade Backups...</p>
+        </div>
+
+        <div class="flex justify-between mt-6 space-x-4">
+            <button onclick="deleteSelectedBackups()" class="w-1/2 bg-red-500 text-white p-3 rounded hover:bg-red-600 transition">
+                🗑 Ausgewählte Backups löschen
+            </button>
+            <button onclick="restoreSelectedBackups()" class="w-1/2 bg-blue-500 text-white p-3 rounded hover:bg-blue-600 transition">
+                ♻ Ausgewählte Backups wiederherstellen
+            </button>
+        </div>
+
+        <br>
+        <a href="/">
+            <button class="w-full bg-gray-700 text-white p-3 rounded hover:bg-gray-800 transition">
+                🔙 Zurück zur Hauptseite
+            </button>
+        </a>
+    </div>
+</body>
+</html>

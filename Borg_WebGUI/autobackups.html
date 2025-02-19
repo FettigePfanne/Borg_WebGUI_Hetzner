@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto-Backups</title>
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        async function listAutoBackups() {
+            let response = await fetch('/list_autobackups');
+            let data = await response.json();
+            let autobackupList = document.getElementById("autobackupList");
+            autobackupList.innerHTML = "";
+
+            if (data.autobackups.length === 0) {
+                autobackupList.innerHTML = "<p class='text-gray-500'>❌ Keine Auto-Backups gefunden!</p>";
+                return;
+            }
+
+            data.autobackups.forEach(ab => {
+                let div = document.createElement("div");
+                div.classList.add("flex", "justify-between", "items-center", "border-b", "p-2");
+
+                div.innerHTML = `<b>${ab.preset_name}</b> - <code class="text-blue-500">${ab.cron_schedule}</code>`;
+
+                let deleteButton = document.createElement("button");
+                deleteButton.innerText = "🗑 Löschen";
+                deleteButton.classList.add("bg-red-500", "text-white", "p-1", "rounded", "hover:bg-red-600");
+                deleteButton.onclick = () => deleteAutoBackup(ab.preset_name);
+
+                div.appendChild(deleteButton);
+                autobackupList.appendChild(div);
+            });
+        }
+
+        async function loadPresets() {
+            let response = await fetch('/list_preset_names');
+            let data = await response.json();
+            let presetSelect = document.getElementById("presetSelect");
+
+            if (data.status === "success") {
+                presetSelect.innerHTML = "<option value=''>-- Preset auswählen --</option>";
+                data.presets.forEach(preset => {
+                    let option = document.createElement("option");
+                    option.value = preset;
+                    option.innerText = preset;
+                    presetSelect.appendChild(option);
+                });
+            } else {
+                alert("Fehler beim Laden der Presets: " + data.message);
+            }
+        }
+
+        async function addAutoBackup() {
+            let presetName = document.getElementById("presetSelect").value;
+            let cronSchedule = document.getElementById("cronSchedule").value;
+
+            if (!presetName || !cronSchedule) {
+                alert("Preset-Name und Zeitplan sind erforderlich!");
+                return;
+            }
+
+            let response = await fetch('/add_autobackup', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({preset_name: presetName, cron_schedule: cronSchedule})
+            });
+
+            let result = await response.json();
+            alert(result.message);
+            listAutoBackups();
+        }
+
+        async function deleteAutoBackup(presetName) {
+            if (!confirm(`Möchtest du das Auto-Backup für '${presetName}' wirklich löschen?`)) return;
+
+            let response = await fetch('/delete_autobackup', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({preset_name: presetName})
+            });
+
+            let result = await response.json();
+            alert(result.message);
+            listAutoBackups();
+        }
+
+        window.onload = function() {
+            listAutoBackups();
+            loadPresets();
+        };
+    </script>
+</head>
+<body class="bg-gray-100 text-gray-900">
+    <div class="max-w-2xl mx-auto p-6 bg-white shadow-lg rounded-lg mt-10">
+        <h1 class="text-2xl font-bold text-center mb-6">🔄 Auto-Backups verwalten</h1>
+
+        <h3 class="text-xl font-semibold">➕ Neues Auto-Backup:</h3>
+        <div class="mb-4">
+            <label class="block">Preset auswählen:</label>
+            <select id="presetSelect" class="w-full p-2 border rounded">
+                <option value="">-- Lade Presets... --</option>
+            </select>
+        </div>
+
+        <div class="mb-4">
+            <label class="block">Cron-Zeitplan:</label>
+            <input type="text" id="cronSchedule" placeholder="z.B. '0 2 * * *'" 
+                   class="w-full p-2 border rounded">
+        </div>
+
+        <button onclick="addAutoBackup()" 
+                class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 transition">
+            ➕ Auto-Backup planen
+        </button>
+
+        <h3 class="text-xl font-semibold mt-6">📅 Geplante Auto-Backups:</h3>
+        <div id="autobackupList" class="mt-2 p-2 border rounded bg-gray-50 max-h-48 overflow-y-auto"></div>
+
+        <br>
+        <a href="/"><button class="w-full bg-gray-700 text-white p-2 rounded hover:bg-gray-800">🔙 Zurück zur Hauptseite</button></a>
+    </div>
+</body>
+</html>

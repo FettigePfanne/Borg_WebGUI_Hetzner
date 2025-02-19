@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Storage-Box Einstellungen</title>
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        async function loadStorageConfig() {
+            let response = await fetch('/get_storage_config');
+            let data = await response.json();
+
+            if (data.status === "success") {
+                document.getElementById("storageIP").value = data.config.storage_ip || "";
+                document.getElementById("storageUser").value = data.config.storage_user || "";
+                document.getElementById("storagePort").value = data.config.storage_port || "";
+                document.getElementById("storagePath").value = data.config.storage_path || "";
+                document.getElementById("backupFolder").value = data.config.backup_folder || "";
+                document.getElementById("storagePassword").value = data.config.storage_password || "";
+                document.getElementById("borgPassphrase").value = data.config.borg_passphrase || "";
+            }
+        }
+
+        async function saveStorageConfig() {
+            let storageIP = document.getElementById("storageIP").value;
+            let storageUser = document.getElementById("storageUser").value;
+            let storagePort = document.getElementById("storagePort").value;
+            let storagePath = document.getElementById("storagePath").value;
+            let backupFolder = document.getElementById("backupFolder").value;
+            let storagePassword = document.getElementById("storagePassword").value;
+            let borgPassphrase = document.getElementById("borgPassphrase").value;
+
+            let response = await fetch('/set_storage_config', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    storage_ip: storageIP,
+                    storage_user: storageUser,
+                    storage_port: storagePort,
+                    storage_path: storagePath,
+                    backup_folder: backupFolder,
+                    storage_password: storagePassword,
+                    borg_passphrase: borgPassphrase
+                })
+            });
+
+            let result = await response.json();
+            alert(result.message);
+        }
+
+        async function initializeBorg() {
+            let response = await fetch('/initialize_borg', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            });
+
+            let result = await response.json();
+            alert(result.message);
+        }
+
+        async function addUser() {
+            let username = document.getElementById("newUsername").value;
+            let password = document.getElementById("newPassword").value;
+            let role = document.getElementById("userRole").value;
+
+            let response = await fetch('/add_user', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username: username, password: password, role: role})
+            });
+
+            let result = await response.json();
+            alert(result.message);
+            loadUsers();  // Benutzerliste aktualisieren
+        }
+
+        async function deleteUser() {
+            let username = document.getElementById("deleteUsername").value;
+
+            let response = await fetch('/delete_user', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username: username})
+            });
+
+            let result = await response.json();
+            alert(result.message);
+            loadUsers();  // Benutzerliste aktualisieren
+        }
+
+        async function loadUsers() {
+            let response = await fetch('/get_users');
+            let result = await response.json();
+
+            let select = document.getElementById("deleteUsername");
+            select.innerHTML = "";  // Liste zurücksetzen
+
+            if (result.status === "success") {
+                result.users.forEach(user => {
+                    let option = document.createElement("option");
+                    option.value = user.username;
+                    option.textContent = `${user.username} (${user.role})`;
+                    select.appendChild(option);
+                });
+            } else {
+                alert(result.message);
+            }
+        }
+
+        window.onload = function() {
+            loadStorageConfig();
+            loadUsers();
+        };
+    </script>
+</head>
+<body class="bg-gray-100 text-gray-900">
+    <div class="max-w-3xl mx-auto p-6 bg-white shadow-lg rounded-lg mt-10">
+        <h1 class="text-2xl font-bold text-center mb-6">🔧 Storage-Box Einstellungen</h1>
+
+        <!-- Storage Settings -->
+        <div class="space-y-4">
+            <label class="block font-medium">🔹 Storage-Box IP:</label>
+            <input type="text" id="storageIP" placeholder="192.168.x.x"
+                   class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
+
+            <label class="block font-medium">👤 Benutzername:</label>
+            <input type="text" id="storageUser" placeholder="storage-user"
+                   class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
+
+            <label class="block font-medium">🔌 SSH Port:</label>
+            <input type="text" id="storagePort" placeholder="22"
+                   class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
+
+            <label class="block font-medium">📁 Basis-Backup-Pfad:</label>
+            <input type="text" id="storagePath" placeholder="/backup"
+                   class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
+
+            <label class="block font-medium">📂 Backup-Ordnername:</label>
+            <input type="text" id="backupFolder" placeholder="mein-backup-ordner"
+                   class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
+
+            <label class="block font-medium">🔑 Passwort:</label>
+            <input type="password" id="storagePassword" placeholder="••••••••"
+                   class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
+
+            <label class="block font-medium">🔒 Borg-Passphrase:</label>
+            <input type="password" id="borgPassphrase" placeholder="••••••••"
+                   class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
+
+            <div class="flex space-x-4 mt-4">
+                <button onclick="saveStorageConfig()"
+                        class="w-1/2 bg-blue-500 text-white p-3 rounded hover:bg-blue-600 transition">
+                    📁 Ordner erstellen
+                </button>
+
+                <button onclick="initializeBorg()"
+                        class="w-1/2 bg-green-500 text-white p-3 rounded hover:bg-green-600 transition">
+                    🗄 Borg initialisieren
+                </button>
+            </div>
+        </div>
+
+        <!-- User Management -->
+        <h2 class="text-xl font-bold mt-8">👥 Benutzerverwaltung</h2>
+
+        <div class="space-y-4 mt-4">
+            <label class="block font-medium">👤 Neuer Benutzername:</label>
+            <input type="text" id="newUsername" placeholder="Benutzername"
+                   class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
+
+            <label class="block font-medium">🔑 Passwort:</label>
+            <input type="password" id="newPassword" placeholder="Passwort"
+                   class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
+
+            <label class="block font-medium">🎭 Rolle:</label>
+            <select id="userRole" class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+            </select>
+
+            <button onclick="addUser()"
+                    class="w-full bg-purple-500 text-white p-3 rounded hover:bg-purple-600 transition">
+                ➕ Benutzer hinzufügen
+            </button>
+        </div>
+
+        <h3 class="text-lg font-bold mt-8">🗑 Benutzer löschen</h3>
+        <div class="space-y-4 mt-4">
+            <select id="deleteUsername"
+                    class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400"></select>
+
+            <button onclick="deleteUser()"
+                    class="w-full bg-red-500 text-white p-3 rounded hover:bg-red-600 transition">
+                ❌ Benutzer löschen
+            </button>
+        </div>
+
+<!-- Abschnitt für Passwort-Änderung -->
+<h2 class="text-xl font-bold mt-8">🔑 Passwort ändern</h2>
+
+<div class="space-y-4 mt-4">
+    <label class="block font-medium">👤 Benutzer auswählen:</label>
+    <select id="changePasswordUser"
+            class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400"></select>
+
+    <label class="block font-medium">🆕 Neues Passwort:</label>
+    <input type="password" id="newPasswordChange" placeholder="Neues Passwort"
+           class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
+
+    <label class="block font-medium">🆕 Passwort bestätigen:</label>
+    <input type="password" id="confirmPasswordChange" placeholder="Passwort bestätigen"
+           class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
+
+    <button onclick="changeUserPassword()"
+            class="w-full bg-yellow-500 text-white p-3 rounded hover:bg-yellow-600 transition">
+        🔄 Passwort ändern
+    </button>
+</div>
+
+<script>
+    async function loadUsersForPasswordChange() {
+        let response = await fetch('/get_users');
+        let result = await response.json();
+
+        let select = document.getElementById("changePasswordUser");
+        select.innerHTML = "";  // Liste zurücksetzen
+
+        if (result.status === "success") {
+            result.users.forEach(user => {
+                let option = document.createElement("option");
+                option.value = user.username;
+                option.textContent = `${user.username} (${user.role})`;
+                select.appendChild(option);
+            });
+        } else {
+            alert(result.message);
+        }
+    }
+
+    async function changeUserPassword() {
+        let username = document.getElementById("changePasswordUser").value;
+        let newPassword = document.getElementById("newPasswordChange").value;
+        let confirmPassword = document.getElementById("confirmPasswordChange").value;
+
+        if (newPassword !== confirmPassword) {
+            alert("❌ Die Passwörter stimmen nicht überein!");
+            return;
+        }
+
+        let response = await fetch('/change_password', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({username: username, new_password: newPassword})
+        });
+
+        let result = await response.json();
+        alert(result.message);
+    }
+
+    window.onload = function() {
+        loadStorageConfig();
+        loadUsers();
+        loadUsersForPasswordChange();  // Lädt Benutzer für das Passwort-Ändern Dropdown
+    };
+</script>
+
+
+        <br><br>
+        <a href="/">
+            <button class="w-full bg-gray-700 text-white p-3 rounded hover:bg-gray-800">
+                🔙 Zurück zur Hauptseite
+            </button>
+        </a>
+    </div>
+</body>
+</html>
+

@@ -1,0 +1,9 @@
+{
+    "storage_ip": "u",
+    "storage_user": "",
+    "storage_port": "",
+    "storage_path": "",
+    "backup_folder": "",
+    "storage_password": "",
+    "borg_passphrase": ""
+}

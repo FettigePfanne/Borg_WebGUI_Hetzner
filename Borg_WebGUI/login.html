@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <script>
+        async function login() {
+            let username = document.getElementById("username").value;
+            let password = document.getElementById("password").value;
+
+            let response = await fetch('/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username: username, password: password})
+            });
+
+            let result = await response.json();
+            if (result.status === "success") {
+                window.location.href = "/";
+            } else {
+                alert(result.message);
+            }
+        }
+    </script>
+</head>
+<body>
+    <h1>🔐 Anmeldung</h1>
+    <input type="text" id="username" placeholder="Benutzername">
+    <br>
+    <input type="password" id="password" placeholder="Passwort">
+    <br>
+    <button onclick="login()">Anmelden</button>
+</body>
+</html>
