@@ -1,0 +1,7 @@
+{
+    "keep_hourly": "3",
+    "keep_daily": "3",
+    "keep_weekly": "3",
+    "keep_monthly": "3",
+    "keep_yearly": "3"
+}
