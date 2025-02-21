@@ -22,7 +22,8 @@ def get_borg_repo():
 
     return f"ssh://{storage_user}@{storage_ip}:{storage_port}{storage_path}/{backup_folder}"
 
-DB_PATH = "/opt/borgweb/presets.db"  # SQLite-Datenbank für Presets
+DB_PATH = "/opt/Borg_WebGUI/presets.db"  # SQLite-Datenbank für Presets
+PRUNE_SETTINGS_FILE = "/opt/Borg_WebGUI/prune_settings.json"
 
 @app.route('/favicon.ico')
 def favicon():
@@ -138,6 +139,74 @@ def delete_user():
 
     return jsonify({"status": "success", "message": f"Benutzer {username} wurde gelöscht!"})
 
+# 📁 Route: Prune-Einstellungen laden
+@app.route("/get_prune_settings", methods=["GET"])
+def get_prune_settings():
+    if os.path.exists(PRUNE_SETTINGS_FILE):
+        with open(PRUNE_SETTINGS_FILE, "r") as file:
+            settings = json.load(file)
+    else:
+        settings = {
+            "keep_hourly": 24,
+            "keep_daily": 7,
+            "keep_weekly": 4,
+            "keep_monthly": 6,
+            "keep_yearly": 2
+        }
+    return jsonify(settings)
+
+# 💾 Route: Prune-Einstellungen speichern
+@app.route("/set_prune_settings", methods=["POST"])
+def set_prune_settings():
+    data = request.json
+    try:
+        with open(PRUNE_SETTINGS_FILE, "w") as file:
+            json.dump(data, file, indent=4)
+        return jsonify({"status": "success", "message": "Prune-Einstellungen erfolgreich gespeichert."})
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"Fehler beim Speichern: {e}"}), 500
+
+# 🔄 Auto-Backup erstellen und anschließend prune ausführen
+@app.route("/run_autobackup", methods=["POST"])
+def run_autobackup():
+    try:
+        data = request.json
+        source_paths = data.get("source_paths", [])
+
+        if not source_paths:
+            return jsonify({"status": "error", "message": "Keine Quellpfade angegeben!"}), 400
+
+        borg_repo, borg_passphrase = get_borg_repo()
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        archive_name = f"auto-backup-{timestamp}"
+
+        # Auto-Backup erstellen
+        cmd_backup = ["borg", "create", f"{borg_repo}::{archive_name}"] + source_paths
+        env = os.environ.copy()
+        env["BORG_PASSPHRASE"] = borg_passphrase
+        subprocess.run(cmd_backup, check=True, env=env)
+
+        # 📁 Prune-Einstellungen laden
+        with open(PRUNE_SETTINGS_FILE, "r") as file:
+            prune_settings = json.load(file)
+
+        # Nach dem Backup automatisch prune ausführen
+        cmd_prune = [
+            "borg", "prune", "-v", "--list", f"{borg_repo}",
+            f"--keep-hourly={prune_settings.get('keep_hourly', 24)}",
+            f"--keep-daily={prune_settings.get('keep_daily', 7)}",
+            f"--keep-weekly={prune_settings.get('keep_weekly', 4)}",
+            f"--keep-monthly={prune_settings.get('keep_monthly', 6)}",
+            f"--keep-yearly={prune_settings.get('keep_yearly', 2)}"
+        ]
+        subprocess.run(cmd_prune, check=True, env=env)
+
+        return jsonify({"status": "success", "message": "Auto-Backup und Bereinigung erfolgreich abgeschlossen."})
+
+    except subprocess.CalledProcessError as e:
+        return jsonify({"status": "error", "message": f"Fehler beim Auto-Backup oder Bereinigen: {e}"})
+
+
 
 # 📌 SQLite-Datenbankverbindung
 def get_db_connection():
@@ -164,29 +233,39 @@ def login_page():
     return render_template("login.html")
 
 
+
 @app.route("/")
 def home():
-    return send_from_directory("/opt/borgweb", "index.html")
+    return send_from_directory("/opt/Borg_WebGUI", "index.html")
 
 @app.route("/backups")
 def backups_page():
-    return send_from_directory("/opt/borgweb", "backups.html")
+    return send_from_directory("/opt/Borg_WebGUI", "backups.html")
+
+@app.route("/prune")
+def prune_page():
+    return render_template("prune.html")
+
+#@app.route("/prune")
+#def prune_page():
+ #   return send_from_directory("prune.html")
 
 @app.route("/presets")
 def presets_page():
-    return send_from_directory("/opt/borgweb", "presets.html")
+    return send_from_directory("/opt/Borg_WebGUI", "presets.html")
 
 @app.route("/manage")
 def manage_page():
-    return send_from_directory("/opt/borgweb", "manage.html")
+    return send_from_directory("/opt/Borg_WebGUI", "manage.html")
+
 
 @app.route("/autobackups")
 def autobackups_page():
-    return send_from_directory("/opt/borgweb", "autobackups.html")
+    return send_from_directory("/opt/Borg_WebGUI", "autobackups.html")
 
 @app.route("/settings")
 def settings_page():
-    return send_from_directory("/opt/borgweb", "settings.html")
+    return send_from_directory("/opt/Borg_WebGUI", "settings.html")
 
 
 @app.route("/list_preset_names", methods=["GET"])
@@ -265,7 +344,7 @@ def delete_multiple_backups():
 
 
 
-SETTINGS_FILE = "/opt/borgweb/storage_config.json"
+SETTINGS_FILE = "/opt/Borg_WebGUI/storage_config.json"
 
 @app.route("/get_storage_config", methods=["GET"])
 def get_storage_config():
