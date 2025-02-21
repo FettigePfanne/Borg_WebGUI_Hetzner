@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Borg Prune Einstellungen</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        async function loadPruneSettings() {
+            let response = await fetch('/get_prune_settings');
+            let data = await response.json();
+
+            document.getElementById("keepHourly").value = data.keep_hourly || 24;
+            document.getElementById("keepDaily").value = data.keep_daily || 7;
+            document.getElementById("keepWeekly").value = data.keep_weekly || 4;
+            document.getElementById("keepMonthly").value = data.keep_monthly || 6;
+            document.getElementById("keepYearly").value = data.keep_yearly || 2;
+        }
+
+        async function savePruneSettings() {
+            let keepHourly = document.getElementById("keepHourly").value;
+            let keepDaily = document.getElementById("keepDaily").value;
+            let keepWeekly = document.getElementById("keepWeekly").value;
+            let keepMonthly = document.getElementById("keepMonthly").value;
+            let keepYearly = document.getElementById("keepYearly").value;
+
+            let response = await fetch('/set_prune_settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    keep_hourly: keepHourly,
+                    keep_daily: keepDaily,
+                    keep_weekly: keepWeekly,
+                    keep_monthly: keepMonthly,
+                    keep_yearly: keepYearly
+                })
+            });
+
+            let result = await response.json();
+            alert(result.message);
+        }
+
+        window.onload = loadPruneSettings;
+    </script>
+</head>
+<body class="bg-gray-100 text-gray-900">
+    <div class="max-w-2xl mx-auto p-6 bg-white shadow-lg rounded-lg mt-10">
+        <h1 class="text-2xl font-bold text-center mb-6">🗑 Borg Prune – Backup Bereinigung</h1>
+
+        <label class="block font-medium">⏰ Stündliche Backups behalten:</label>
+        <input type="number" id="keepHourly" class="w-full p-2 border rounded mb-4">
+
+        <label class="block font-medium">🗓 Tägliche Backups behalten:</label>
+        <input type="number" id="keepDaily" class="w-full p-2 border rounded mb-4">
+
+        <label class="block font-medium">📅 Wöchentliche Backups behalten:</label>
+        <input type="number" id="keepWeekly" class="w-full p-2 border rounded mb-4">
+
+        <label class="block font-medium">📆 Monatliche Backups behalten:</label>
+        <input type="number" id="keepMonthly" class="w-full p-2 border rounded mb-4">
+
+        <label class="block font-medium">📅 Jährliche Backups behalten:</label>
+        <input type="number" id="keepYearly" class="w-full p-2 border rounded mb-4">
+
+        <button onclick="savePruneSettings()"
+                class="w-full bg-blue-500 text-white p-3 rounded hover:bg-blue-600 transition">
+            💾 Einstellungen speichern
+        </button>
+
+        <br><br>
+        <a href="/">
+            <button class="w-full bg-gray-700 text-white p-3 rounded hover:bg-gray-800 transition">
+                🔙 Zurück zur Hauptseite
+            </button>
+        </a>
+    </div>
+</body>
+</html>
